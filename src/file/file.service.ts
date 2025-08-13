@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { CloudProvidersMetaData } from './cloud.providers.metadata';
 import { R_OK } from 'constants';
+import { URL } from 'url';
 
 @Injectable()
 export class FileService {
@@ -13,11 +14,36 @@ export class FileService {
   async getFile(file: string): Promise<Stream> {
     this.logger.log(`Reading file: ${file}`);
 
+    // Validate the file path to prevent directory traversal
+    if (file.includes('..')) {
+      throw new Error('Invalid file path');
+    }
+
     if (file.startsWith('/')) {
       await fs.promises.access(file, R_OK);
 
       return fs.createReadStream(file);
     } else if (file.startsWith('http')) {
+      // Validate URL
+      let url;
+      try {
+        url = new URL(file);
+      } catch (err) {
+        throw new Error('Invalid URL');
+      }
+
+      // Check against allowed hosts
+      const allowedHosts = [
+        'metadata.google.internal',
+        '169.254.169.254'
+      ];
+
+      // Fix: Ensure the URL is not pointing to internal IPs or metadata services
+      const internalIpRegex = /^(127\.0\.0\.1|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.|169\.254\.)/;
+      if (internalIpRegex.test(url.hostname) || allowedHosts.includes(url.hostname)) {
+        throw new Error('Host not allowed');
+      }
+
       const content = await this.cloudProviders.get(file);
 
       if (content) {
