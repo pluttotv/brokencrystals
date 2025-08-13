@@ -19,6 +19,13 @@ export class FileService {
       throw new Error('Invalid file path');
     }
 
+    // Ensure the file path is within a specific directory
+    const baseDir = path.resolve(process.cwd(), 'allowed_directory');
+    const resolvedPath = path.resolve(baseDir, file);
+    if (!resolvedPath.startsWith(baseDir)) {
+      throw new Error('Access to this file path is not allowed');
+    }
+
     if (file.startsWith('/')) {
       await fs.promises.access(file, R_OK);
 
@@ -44,6 +51,11 @@ export class FileService {
         throw new Error('Host not allowed');
       }
 
+      // Allow only specific protocols
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        throw new Error('Invalid protocol');
+      }
+
       const content = await this.cloudProviders.get(file);
 
       if (content) {
@@ -52,11 +64,9 @@ export class FileService {
         throw new Error(`no such file or directory, access '${file}'`);
       }
     } else {
-      file = path.resolve(process.cwd(), file);
+      await fs.promises.access(resolvedPath, R_OK);
 
-      await fs.promises.access(file, R_OK);
-
-      return fs.createReadStream(file);
+      return fs.createReadStream(resolvedPath);
     }
   }
 
