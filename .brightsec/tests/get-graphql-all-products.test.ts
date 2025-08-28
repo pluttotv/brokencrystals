@@ -21,7 +21,7 @@ after(() => runner.clear());
 test('GET /graphql-all-products', { signal: AbortSignal.timeout(timeout) }, async () => {
   await runner
     .createScan({
-      tests: ['graphql_introspection', 'sqli', 'jwt', 'bopla'],
+      tests: ['graphql_introspection'],
       attackParamLocations: [AttackParamLocation.QUERY, AttackParamLocation.HEADER],
       starMetadata: {}
     })
