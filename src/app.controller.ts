@@ -75,7 +75,9 @@ export class AppController {
       const escapedText = text.replace(/[&<>'"/]/g, function (char) {
         return `&#${char.charCodeAt(0)};`;
       });
-      const res = dotT.compile(escapedText)();
+      // Use a predefined template instead of compiling user input directly
+      const template = dotT.template('Hello, {{=it.name}}!');
+      const res = template({ name: escapedText });
       this.logger.debug(`Rendered template: ${res}`);
       return res;
     }
@@ -97,7 +99,7 @@ export class AppController {
       if (!allowedHosts.includes(parsedUrl.hostname)) {
         throw new HttpException('Invalid redirect URL', HttpStatus.BAD_REQUEST);
       }
-      return { url };
+      return { url: parsedUrl.toString() };
     } catch (error) {
       throw new HttpException('Invalid URL format', HttpStatus.BAD_REQUEST);
     }
